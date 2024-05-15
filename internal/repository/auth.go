@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/nozzlium/halosuster/internal/constant"
 	"github.com/nozzlium/halosuster/internal/model"
 )
 
@@ -63,7 +65,7 @@ func (r *AuthRepository) Save(
 
 func (r *AuthRepository) FindByEmployeeId(
 	ctx context.Context,
-	employeeId string,
+	employeeId uint64,
 ) (model.User, error) {
 	query := `
     select
@@ -83,6 +85,12 @@ func (r *AuthRepository) FindByEmployeeId(
 		employeeId,
 	).Scan(&user.ID, &user.Name, &user.EmployeeID, &user.Password)
 	if err != nil {
+		if errors.Is(
+			err,
+			pgx.ErrNoRows,
+		) {
+			return model.User{}, constant.ErrNotFound
+		}
 		return model.User{}, err
 	}
 

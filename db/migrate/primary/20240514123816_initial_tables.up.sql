@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS "users" (
   "id" uuid NOT NULL,
-  "employee_id" varchar(13) not null,
+  "employee_id" bigint not null,
   "name" varchar(50),
   -- "username" varchar(255) NOT NULL,
   "password" varchar(100),

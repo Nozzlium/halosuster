@@ -9,7 +9,7 @@ import (
 
 type User struct {
 	ID                   uuid.UUID
-	EmployeeID           string
+	EmployeeID           uint64
 	Name                 string
 	Password             string
 	IdentityCardImageURL string
@@ -30,7 +30,7 @@ func (u *User) ToUserResponseBody() UserResponseBody {
 }
 
 type UserRequestBody struct {
-	NIP      string `json:"nip"`
+	NIP      uint64 `json:"nip"`
 	Name     string `json:"name"`
 	Password string `json:"password"`
 }
@@ -57,12 +57,27 @@ func (body *UserRequestBody) IsValid() bool {
 
 type UserResponseBody struct {
 	UserID      string `json:"userId"`
-	NIP         string `json:"nip"`
+	NIP         uint64 `json:"nip"`
 	Name        string `json:"name"`
 	AccessToken string `json:"accessToken"`
 }
 
 type UserLoginBody struct {
-	NIP      string `json:"nip"`
+	NIP      uint64 `json:"nip"`
 	Password string `json:"password"`
+}
+
+func (body *UserLoginBody) IsValid() bool {
+	if !util.ValidateUserEmployeeID(
+		body.NIP,
+	) {
+		return false
+	}
+
+	if passLen := len(body.Password); passLen < 5 ||
+		passLen > 33 {
+		return false
+	}
+
+	return true
 }

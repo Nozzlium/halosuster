@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/nozzlium/halosuster/internal/constant"
 	"github.com/nozzlium/halosuster/internal/model"
 	"github.com/nozzlium/halosuster/internal/service"
 )
@@ -26,6 +27,7 @@ func (h *UserHandler) Register(
 	var body model.UserRequestBody
 	err := ctx.BodyParser(&body)
 	if err != nil {
+		err = constant.ErrBadInput
 		return HandleError(
 			ctx,
 			ErrorResponse{
@@ -40,6 +42,7 @@ func (h *UserHandler) Register(
 	}
 
 	if !body.IsValid() {
+		err = constant.ErrBadInput
 		return HandleError(
 			ctx,
 			ErrorResponse{
@@ -88,6 +91,7 @@ func (h *UserHandler) Login(
 	var body model.UserLoginBody
 	err := ctx.BodyParser(&body)
 	if err != nil {
+		err = constant.ErrBadInput
 		return HandleError(
 			ctx,
 			ErrorResponse{
@@ -95,6 +99,21 @@ func (h *UserHandler) Login(
 				message: "invalid body",
 				detail: fmt.Sprintf(
 					"user login; failed to parse request body %v",
+					err,
+				),
+			},
+		)
+	}
+
+	if !body.IsValid() {
+		err := constant.ErrBadInput
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: "invalid body",
+				detail: fmt.Sprintf(
+					"user login; invalid body: %v",
 					err,
 				),
 			},

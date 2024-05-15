@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/nozzlium/halosuster/internal/constant"
 	"github.com/nozzlium/halosuster/internal/model"
 	"github.com/nozzlium/halosuster/internal/repository"
 	"github.com/nozzlium/halosuster/internal/util"
@@ -35,6 +37,23 @@ func (s *UserService) Register(
 	ctx context.Context,
 	user model.User,
 ) (model.UserResponseBody, error) {
+	savedUser, err := s.authRepository.FindByEmployeeId(
+		ctx,
+		user.EmployeeID,
+	)
+	if err != nil {
+		if errors.Is(
+			err,
+			constant.ErrNotFound,
+		) {
+			return model.UserResponseBody{}, err
+		}
+	}
+
+	if savedUser.EmployeeID == user.EmployeeID {
+		return model.UserResponseBody{}, constant.ErrConflict
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return model.UserResponseBody{}, err
@@ -124,7 +143,9 @@ func generateJwtToken(
 		[]byte(user.ID.String()),
 	)
 	employeeId := base64.RawStdEncoding.EncodeToString(
-		[]byte(user.EmployeeID),
+		util.Uint64ToByteArray(
+			user.EmployeeID,
+		),
 	)
 	claims["si"] = userID
 	claims["ut"] = employeeId
