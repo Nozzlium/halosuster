@@ -14,6 +14,10 @@ var (
 		"account already exists",
 	)
 
+	ErrUnauthorized = errors.New(
+		"unauthorized",
+	)
+
 	ErrInvalidBody = errors.New(
 		"invalid body",
 	)

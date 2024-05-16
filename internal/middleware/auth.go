@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"os"
+	"strconv"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -22,11 +23,13 @@ func Protected() func(*fiber.Ctx) error {
 	})
 }
 
-func SetEmailAndUserID() func(*fiber.Ctx) error {
+func SetClaimsData() func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("userData").(*jwt.Token).Claims.(jwt.MapClaims)
-		employeeId, err := base64.RawStdEncoding.DecodeString(
+		employeeId, err := strconv.ParseUint(
 			user["ut"].(string),
+			16,
+			64,
 		)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).
@@ -34,7 +37,7 @@ func SetEmailAndUserID() func(*fiber.Ctx) error {
 		}
 		c.Locals(
 			"employeeId",
-			string(employeeId),
+			employeeId,
 		)
 
 		userIDByte, err := base64.RawStdEncoding.DecodeString(

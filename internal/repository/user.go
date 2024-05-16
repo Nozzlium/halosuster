@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/nozzlium/halosuster/internal/constant"
 	"github.com/nozzlium/halosuster/internal/model"
@@ -63,6 +64,40 @@ func (r *AuthRepository) Save(
 	return user, nil
 }
 
+func (r *AuthRepository) FindById(
+	ctx context.Context,
+	id uuid.UUID,
+) (model.User, error) {
+	query := `
+    select
+      id,
+      name,
+      employee_id,
+      password
+    from users
+    where
+      id = $1;
+  `
+
+	var user model.User
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		id,
+	).Scan(&user.ID, &user.Name, &user.EmployeeID, &user.Password)
+	if err != nil {
+		if errors.Is(
+			err,
+			pgx.ErrNoRows,
+		) {
+			return model.User{}, constant.ErrNotFound
+		}
+		return model.User{}, err
+	}
+
+	return user, nil
+}
+
 func (r *AuthRepository) FindByEmployeeId(
 	ctx context.Context,
 	employeeId uint64,
@@ -91,6 +126,28 @@ func (r *AuthRepository) FindByEmployeeId(
 		) {
 			return model.User{}, constant.ErrNotFound
 		}
+		return model.User{}, err
+	}
+
+	return user, nil
+}
+
+func (r *AuthRepository) EditPassword(
+	ctx context.Context,
+	user model.User,
+) (model.User, error) {
+	query := `
+    update users
+    set password = $1
+    where id = $2
+  `
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		user.Password,
+		user.ID,
+	)
+	if err != nil {
 		return model.User{}, err
 	}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/nozzlium/halosuster/internal/client"
 	"github.com/nozzlium/halosuster/internal/config"
 	"github.com/nozzlium/halosuster/internal/handler"
+	"github.com/nozzlium/halosuster/internal/middleware"
 	"github.com/nozzlium/halosuster/internal/repository"
 	"github.com/nozzlium/halosuster/internal/service"
 )
@@ -56,9 +57,15 @@ func setupApp(app *fiber.App) error {
 		int(cfg.BCryptSalt),
 		cfg.JWTSecret,
 	)
+	nurseService := service.NewNurseService(
+		authRepo,
+	)
 
 	userHandler := handler.NewUserHandler(
 		userService,
+	)
+	nurseHandler := handler.NewNurseHandler(
+		nurseService,
 	)
 
 	v1 := app.Group("/v1")
@@ -71,6 +78,23 @@ func setupApp(app *fiber.App) error {
 	userIt.Post(
 		"/login",
 		userHandler.Login,
+	)
+
+	userNurse := v1.Group("/user/nurse")
+	userNurse.Post(
+		"/login",
+		nurseHandler.Login,
+	)
+	userNurseProtected := userNurse.
+		Use(middleware.Protected()).
+		Use(middleware.SetClaimsData())
+	userNurseProtected.Post(
+		"/register",
+		nurseHandler.Register,
+	)
+	userNurseProtected.Post(
+		"/:userId/access",
+		nurseHandler.GiveAccess,
 	)
 
 	return nil

@@ -29,6 +29,14 @@ func (u *User) ToUserResponseBody() UserResponseBody {
 	}
 }
 
+func (u *User) ToNurseResponseBody() NurseRegisterResponseBody {
+	return NurseRegisterResponseBody{
+		UserID: u.ID.String(),
+		NIP:    u.EmployeeID,
+		Name:   u.Name,
+	}
+}
+
 type UserRequestBody struct {
 	NIP      uint64 `json:"nip"`
 	Name     string `json:"name"`
@@ -80,4 +88,70 @@ func (body *UserLoginBody) IsValid() bool {
 	}
 
 	return true
+}
+
+type NurseLoginBody struct {
+	NIP      uint64 `json:"nip"`
+	Password string `json:"password"`
+}
+
+func (body *NurseLoginBody) IsValid() bool {
+	if !util.ValidateNurseEmployeeID(
+		body.NIP,
+	) {
+		return false
+	}
+
+	if passLen := len(body.Password); passLen < 5 ||
+		passLen > 33 {
+		return false
+	}
+
+	return true
+}
+
+type NurseRegisterRequestBody struct {
+	NIP                 uint64 `json:"nip"`
+	Name                string `json:"name"`
+	IdentityCardScanImg string `json:"identityCardScanImg"`
+}
+
+func (body *NurseRegisterRequestBody) IsValid() bool {
+	if !util.ValidateNurseEmployeeID(
+		body.NIP,
+	) {
+		return false
+	}
+
+	if nameLen := len(body.Name); nameLen < 5 ||
+		nameLen > 50 {
+		return false
+	}
+
+	if !util.ValidateURL(
+		body.IdentityCardScanImg,
+	) {
+		return false
+	}
+
+	return true
+}
+
+type NurseGiveAccessRequestBody struct {
+	Password string `json:"password"`
+}
+
+func (body *NurseGiveAccessRequestBody) IsValid() bool {
+	if passLen := len(body.Password); passLen < 5 ||
+		passLen > 33 {
+		return false
+	}
+
+	return true
+}
+
+type NurseRegisterResponseBody struct {
+	UserID string `json:"userId"`
+	NIP    uint64 `json:"nip"`
+	Name   string `json:"name"`
 }

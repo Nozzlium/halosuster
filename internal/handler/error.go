@@ -23,6 +23,11 @@ func HandleError(
 			JSON(fiber.Map{
 				"message": err.message,
 			})
+	case constant.ErrUnauthorized:
+		return ctx.Status(fiber.StatusUnauthorized).
+			JSON(fiber.Map{
+				"message": err.message,
+			})
 	case constant.ErrBadInput,
 		constant.ErrInvalidBody,
 		constant.ErrInsufficientFund,
