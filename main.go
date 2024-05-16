@@ -57,15 +57,9 @@ func setupApp(app *fiber.App) error {
 		int(cfg.BCryptSalt),
 		cfg.JWTSecret,
 	)
-	nurseService := service.NewNurseService(
-		authRepo,
-	)
 
 	userHandler := handler.NewUserHandler(
 		userService,
-	)
-	nurseHandler := handler.NewNurseHandler(
-		nurseService,
 	)
 
 	v1 := app.Group("/v1")
@@ -83,18 +77,18 @@ func setupApp(app *fiber.App) error {
 	userNurse := v1.Group("/user/nurse")
 	userNurse.Post(
 		"/login",
-		nurseHandler.Login,
+		userHandler.LoginNurse,
 	)
 	userNurseProtected := userNurse.
 		Use(middleware.Protected()).
 		Use(middleware.SetClaimsData())
 	userNurseProtected.Post(
 		"/register",
-		nurseHandler.Register,
+		userHandler.RegisterNurse,
 	)
 	userNurseProtected.Post(
 		"/:userId/access",
-		nurseHandler.GiveAccess,
+		userHandler.GrantNurseAccess,
 	)
 
 	return nil
