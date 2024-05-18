@@ -18,18 +18,18 @@ import (
 )
 
 type UserService struct {
-	authRepository *repository.AuthRepository
+	userRepository *repository.UserRepository
 	salt           int
 	secret         string
 }
 
 func NewUserService(
-	authRepository *repository.AuthRepository,
+	userRepository *repository.UserRepository,
 	salt int,
 	secret string,
 ) *UserService {
 	return &UserService{
-		authRepository: authRepository,
+		userRepository: userRepository,
 		salt:           salt,
 		secret:         secret,
 	}
@@ -38,8 +38,8 @@ func NewUserService(
 func (s *UserService) Register(
 	ctx context.Context,
 	user model.User,
-) (model.UserResponseBody, error) {
-	savedUser, err := s.authRepository.FindByEmployeeId(
+) (model.UserRegisterResponseBody, error) {
+	savedUser, err := s.userRepository.FindByEmployeeId(
 		ctx,
 		user.EmployeeID,
 	)
@@ -48,17 +48,17 @@ func (s *UserService) Register(
 			err,
 			constant.ErrNotFound,
 		) {
-			return model.UserResponseBody{}, err
+			return model.UserRegisterResponseBody{}, err
 		}
 	}
 
 	if savedUser.EmployeeID == user.EmployeeID {
-		return model.UserResponseBody{}, constant.ErrConflict
+		return model.UserRegisterResponseBody{}, constant.ErrConflict
 	}
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 	currentTime := util.Now()
 	hashedPassword, err := bcrypt.GenerateFromPassword(
@@ -66,7 +66,7 @@ func (s *UserService) Register(
 		s.salt,
 	)
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 
 	user.ID = id
@@ -76,12 +76,12 @@ func (s *UserService) Register(
 	user.CreatedAt = currentTime
 	user.UpdatedAt = currentTime
 
-	result, err := s.authRepository.Save(
+	result, err := s.userRepository.Save(
 		ctx,
 		user,
 	)
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 
 	accessToken, err := generateJwtToken(
@@ -89,10 +89,10 @@ func (s *UserService) Register(
 		result,
 	)
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 
-	userResponseBody := result.ToUserResponseBody()
+	userResponseBody := result.ToUserRegisterResponseBody()
 	userResponseBody.AccessToken = accessToken
 
 	return userResponseBody, nil
@@ -101,13 +101,13 @@ func (s *UserService) Register(
 func (s *UserService) Login(
 	ctx context.Context,
 	user model.User,
-) (model.UserResponseBody, error) {
-	savedUser, err := s.authRepository.FindByEmployeeId(
+) (model.UserRegisterResponseBody, error) {
+	savedUser, err := s.userRepository.FindByEmployeeId(
 		ctx,
 		user.EmployeeID,
 	)
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 
 	err = bcrypt.CompareHashAndPassword(
@@ -115,7 +115,7 @@ func (s *UserService) Login(
 		[]byte(user.Password),
 	)
 	if err != nil {
-		return model.UserResponseBody{}, constant.ErrBadInput
+		return model.UserRegisterResponseBody{}, constant.ErrBadInput
 	}
 
 	accessToken, err := generateJwtToken(
@@ -123,13 +123,40 @@ func (s *UserService) Login(
 		user,
 	)
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 
-	userResponseBody := savedUser.ToUserResponseBody()
+	userResponseBody := savedUser.ToUserRegisterResponseBody()
 	userResponseBody.AccessToken = accessToken
 
 	return userResponseBody, nil
+}
+
+func (s *UserService) FindAll(
+	ctx context.Context,
+	queries model.SearchUserQuery,
+) ([]model.UserDataResponseBody, error) {
+	users, err := s.userRepository.FindAll(
+		ctx,
+		queries,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	usersData := make(
+		[]model.UserDataResponseBody,
+		0,
+		len(users),
+	)
+	for _, user := range users {
+		usersData = append(
+			usersData,
+			user.ToUserDataResponseBody(),
+		)
+	}
+
+	return usersData, nil
 }
 
 func generateJwtToken(
@@ -170,13 +197,14 @@ func (s *UserService) RegisterNurse(
 	user model.User,
 ) (model.NurseRegisterResponseBody, error) {
 	employeeId := ctx.Value("employeeId").(uint64)
-	if !util.ValidateUserEmployeeID(
+	err := util.ValidateUserEmployeeID(
 		employeeId,
-	) {
+	)
+	if err != nil {
 		return model.NurseRegisterResponseBody{}, constant.ErrUnauthorized
 	}
 
-	savedNurse, err := s.authRepository.FindByEmployeeId(
+	savedNurse, err := s.userRepository.FindByEmployeeId(
 		ctx,
 		user.EmployeeID,
 	)
@@ -203,7 +231,7 @@ func (s *UserService) RegisterNurse(
 	user.CreatedAt = currentTime
 	user.UpdatedAt = currentTime
 
-	result, err := s.authRepository.Save(
+	result, err := s.userRepository.Save(
 		ctx,
 		user,
 	)
@@ -217,13 +245,13 @@ func (s *UserService) RegisterNurse(
 func (s *UserService) LoginNurse(
 	ctx context.Context,
 	user model.User,
-) (model.UserResponseBody, error) {
-	savedUser, err := s.authRepository.FindByEmployeeId(
+) (model.UserRegisterResponseBody, error) {
+	savedUser, err := s.userRepository.FindByEmployeeId(
 		ctx,
 		user.EmployeeID,
 	)
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 
 	err = bcrypt.CompareHashAndPassword(
@@ -231,7 +259,7 @@ func (s *UserService) LoginNurse(
 		[]byte(user.Password),
 	)
 	if err != nil {
-		return model.UserResponseBody{}, constant.ErrBadInput
+		return model.UserRegisterResponseBody{}, constant.ErrBadInput
 	}
 
 	accessToken, err := generateJwtToken(
@@ -239,10 +267,10 @@ func (s *UserService) LoginNurse(
 		user,
 	)
 	if err != nil {
-		return model.UserResponseBody{}, err
+		return model.UserRegisterResponseBody{}, err
 	}
 
-	userResponseBody := savedUser.ToUserResponseBody()
+	userResponseBody := savedUser.ToUserRegisterResponseBody()
 	userResponseBody.AccessToken = accessToken
 
 	return userResponseBody, nil
@@ -253,13 +281,14 @@ func (s *UserService) GrantNurseAccess(
 	user model.User,
 ) error {
 	employeeId := ctx.Value("employeeId").(uint64)
-	if !util.ValidateUserEmployeeID(
+	err := util.ValidateUserEmployeeID(
 		employeeId,
-	) {
+	)
+	if err != nil {
 		return constant.ErrUnauthorized
 	}
 
-	savedNurse, err := s.authRepository.FindById(
+	savedNurse, err := s.userRepository.FindById(
 		ctx,
 		user.ID,
 	)
@@ -267,9 +296,10 @@ func (s *UserService) GrantNurseAccess(
 		return err
 	}
 
-	if !util.ValidateNurseEmployeeID(
+	err = util.ValidateNurseEmployeeID(
 		savedNurse.EmployeeID,
-	) {
+	)
+	if err != nil {
 		return constant.ErrBadInput
 	}
 
@@ -281,7 +311,7 @@ func (s *UserService) GrantNurseAccess(
 		return err
 	}
 
-	_, err = s.authRepository.EditPassword(
+	_, err = s.userRepository.EditPassword(
 		ctx,
 		model.User{
 			ID: user.ID,
@@ -295,4 +325,36 @@ func (s *UserService) GrantNurseAccess(
 	}
 
 	return nil
+}
+
+func (s *UserService) Update(
+	ctx context.Context,
+	user model.User,
+) (model.User, error) {
+	saved, err := s.userRepository.FindByEmployeeId(
+		ctx,
+		user.EmployeeID,
+	)
+	if err != nil {
+		if !errors.Is(
+			err,
+			constant.ErrNotFound,
+		) {
+			return user, err
+		}
+	}
+
+	if saved.EmployeeID == user.EmployeeID {
+		return user, constant.ErrConflict
+	}
+
+	edited, err := s.userRepository.Edit(
+		ctx,
+		user,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return edited, nil
 }

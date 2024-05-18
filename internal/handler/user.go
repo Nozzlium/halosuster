@@ -25,7 +25,7 @@ func NewUserHandler(
 func (h *UserHandler) Register(
 	ctx *fiber.Ctx,
 ) error {
-	var body model.UserRequestBody
+	var body model.UserRegisterRequestBody
 	err := ctx.BodyParser(&body)
 	if err != nil {
 		err = constant.ErrBadInput
@@ -42,13 +42,13 @@ func (h *UserHandler) Register(
 		)
 	}
 
-	if !body.IsValid() {
-		err = constant.ErrBadInput
+	err = body.IsValid()
+	if err != nil {
 		return HandleError(
 			ctx,
 			ErrorResponse{
 				error:   err,
-				message: "invalid body",
+				message: err.Error(),
 				detail: fmt.Sprintf(
 					"user register; invalid body: %v",
 					err,
@@ -106,13 +106,13 @@ func (h *UserHandler) Login(
 		)
 	}
 
-	if !body.IsValid() {
-		err := constant.ErrBadInput
+	err = body.IsValid()
+	if err != nil {
 		return HandleError(
 			ctx,
 			ErrorResponse{
 				error:   err,
-				message: "invalid body",
+				message: err.Error(),
 				detail: fmt.Sprintf(
 					"user login; invalid body: %v",
 					err,
@@ -168,8 +168,8 @@ func (h *UserHandler) RegisterNurse(
 		)
 	}
 
-	if !body.IsValid() {
-		err = constant.ErrBadInput
+	err = body.IsValid()
+	if err != nil {
 		return HandleError(
 			ctx,
 			ErrorResponse{
@@ -236,13 +236,13 @@ func (h *UserHandler) LoginNurse(
 		)
 	}
 
-	if !body.IsValid() {
-		err := constant.ErrBadInput
+	err = body.IsValid()
+	if err != nil {
 		return HandleError(
 			ctx,
 			ErrorResponse{
 				error:   err,
-				message: "invalid body",
+				message: err.Error(),
 				detail: fmt.Sprintf(
 					"nurse login; invalid body: %v",
 					err,
@@ -361,4 +361,42 @@ func (h *UserHandler) GrantNurseAccess(
 		JSON(fiber.Map{
 			"message": "success",
 		})
+}
+
+func (h *UserHandler) FindAll(
+	ctx *fiber.Ctx,
+) error {
+	var queries model.SearchUserQuery
+	ctx.QueryParser(&queries)
+	queries.Offset = ctx.QueryInt(
+		"offset",
+		0,
+	)
+	queries.Limit = ctx.QueryInt(
+		"limit",
+		5,
+	)
+
+	data, err := h.userService.FindAll(
+		ctx.Context(),
+		queries,
+	)
+	if err != nil {
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: err.Error(),
+				detail: fmt.Sprintf(
+					"find users; error finding users: %v",
+					err,
+				),
+			},
+		)
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data":    data,
+	})
 }

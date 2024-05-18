@@ -48,12 +48,12 @@ func setupApp(app *fiber.App) error {
 		return err
 	}
 
-	authRepo := repository.NewAuthRepository(
+	userRepo := repository.NewUserRepository(
 		db,
 	)
 
 	userService := service.NewUserService(
-		authRepo,
+		userRepo,
 		int(cfg.BCryptSalt),
 		cfg.JWTSecret,
 	)
@@ -90,6 +90,10 @@ func setupApp(app *fiber.App) error {
 		"/:userId/access",
 		userHandler.GrantNurseAccess,
 	)
+
+	user := v1.Group("/user")
+	user.Use(middleware.Protected())
+	user.Get("", userHandler.FindAll)
 
 	return nil
 }

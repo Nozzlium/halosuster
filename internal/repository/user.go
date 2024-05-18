@@ -1,28 +1,31 @@
 package repository
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/nozzlium/halosuster/internal/constant"
 	"github.com/nozzlium/halosuster/internal/model"
+	"github.com/nozzlium/halosuster/internal/util"
 )
 
-type AuthRepository struct {
+type UserRepository struct {
 	db *pgx.Conn
 }
 
-func NewAuthRepository(
+func NewUserRepository(
 	db *pgx.Conn,
-) *AuthRepository {
-	return &AuthRepository{
+) *UserRepository {
+	return &UserRepository{
 		db: db,
 	}
 }
 
-func (r *AuthRepository) Save(
+func (r *UserRepository) Save(
 	ctx context.Context,
 	user model.User,
 ) (model.User, error) {
@@ -64,7 +67,7 @@ func (r *AuthRepository) Save(
 	return user, nil
 }
 
-func (r *AuthRepository) FindById(
+func (r *UserRepository) FindById(
 	ctx context.Context,
 	id uuid.UUID,
 ) (model.User, error) {
@@ -98,7 +101,65 @@ func (r *AuthRepository) FindById(
 	return user, nil
 }
 
-func (r *AuthRepository) FindByEmployeeId(
+func (r *UserRepository) FindAll(
+	ctx context.Context,
+	searchQuery model.SearchUserQuery,
+) ([]model.User, error) {
+	var query bytes.Buffer
+	query.WriteString(`
+    select 
+      id,
+      employee_id,
+      name,
+      created_at
+      from users
+    where 1 = 1
+  `)
+	queryString, params := util.BuildQueryStringAndParams(
+		&query,
+		searchQuery.BuildWhereClauses,
+		searchQuery.BuildPagination,
+		searchQuery.BuildOrderByClause,
+	)
+	log.Println(
+		"query hasil",
+		queryString,
+		params,
+	)
+
+	rows, err := r.db.Query(
+		ctx,
+		queryString,
+		params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := make(
+		[]model.User,
+		0,
+		searchQuery.Limit,
+	)
+	for rows.Next() {
+		var user model.User
+		err := rows.Scan(
+			&user.ID,
+			&user.EmployeeID,
+			&user.Name,
+			&user.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (r *UserRepository) FindByEmployeeId(
 	ctx context.Context,
 	employeeId uint64,
 ) (model.User, error) {
@@ -132,7 +193,7 @@ func (r *AuthRepository) FindByEmployeeId(
 	return user, nil
 }
 
-func (r *AuthRepository) EditPassword(
+func (r *UserRepository) EditPassword(
 	ctx context.Context,
 	user model.User,
 ) (model.User, error) {
@@ -145,6 +206,51 @@ func (r *AuthRepository) EditPassword(
 		ctx,
 		query,
 		user.Password,
+		user.ID,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) Edit(
+	ctx context.Context,
+	user model.User,
+) (model.User, error) {
+	query := `
+    update users
+    set employee_id = $1, name = $2
+    where id = $3
+  `
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		user.EmployeeID,
+		user.Name,
+		user.ID,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) SetDeletedAt(
+	ctx context.Context,
+	user model.User,
+) (model.User, error) {
+	query := `
+    update users
+    set deleted_at = $1
+    where id = $2
+  `
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		user.DeletedAt,
 		user.ID,
 	)
 	if err != nil {

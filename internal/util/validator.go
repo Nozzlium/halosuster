@@ -3,6 +3,8 @@ package util
 import (
 	"regexp"
 	"time"
+
+	"github.com/nozzlium/halosuster/internal/constant"
 )
 
 func ValidateURL(url string) bool {
@@ -17,45 +19,13 @@ func ValidateURL(url string) bool {
 	return urlRegex.MatchString(url)
 }
 
-// func ValidateUserEmployeeID(
-// 	employeeId string,
-// ) bool {
-// 	regex := `^[615]{3}[1-2]{1}(200[0-9]|201[0-9]|202[1-4])(0[1-9]|1[0-2])[0-9]{3}$`
-// 	idRegex, err := regexp.Compile(
-// 		regex,
-// 	)
-// 	if err != nil {
-// 		return false
-// 	}
-//
-// 	return idRegex.MatchString(
-// 		employeeId,
-// 	)
-// }
-
-// func ValidateNurseEmployeeID(
-// 	employeeId string,
-// ) bool {
-// 	regex := `^[303]{3}[1-2]{1}(200[0-9]|201[0-9]|202[1-4])(0[1-9]|1[0-2])[0-9]{3}$`
-// 	idRegex, err := regexp.Compile(
-// 		regex,
-// 	)
-// 	if err != nil {
-// 		return false
-// 	}
-//
-// 	return idRegex.MatchString(
-// 		employeeId,
-// 	)
-// }
-
 func ValidateUserEmployeeID(
 	employeeId uint64,
-) bool {
+) error {
 	if employeeId < uint64(
 		6150000000000,
 	) {
-		return false
+		return constant.ErrBadInput
 	}
 
 	employeeId /= 1000
@@ -63,32 +33,36 @@ func ValidateUserEmployeeID(
 
 	if monthDigits := employeeId % 100; monthDigits < 1 ||
 		monthDigits > 12 {
-		return false
+		return constant.ErrBadInput
 	}
 	employeeId /= 100
 
 	if yearDigits := employeeId % 10000; yearDigits < 2000 ||
 		yearDigits > uint64(currYear) {
-		return false
+		return constant.ErrBadInput
 	}
 	employeeId /= 10000
 
 	if genderDigit := employeeId % 10; genderDigit < 1 ||
 		genderDigit > 2 {
-		return false
+		return constant.ErrBadInput
 	}
 	employeeId /= 10
 
-	return employeeId == 615
+	if employeeId != 615 {
+		return constant.ErrNotFound
+	}
+
+	return nil
 }
 
 func ValidateNurseEmployeeID(
 	employeeId uint64,
-) bool {
+) error {
 	if employeeId < uint64(
 		3030000000000,
 	) {
-		return false
+		return constant.ErrBadInput
 	}
 
 	employeeId /= 1000
@@ -96,21 +70,25 @@ func ValidateNurseEmployeeID(
 
 	if monthDigits := employeeId % 100; monthDigits < 1 ||
 		monthDigits > 12 {
-		return false
+		return constant.ErrBadInput
 	}
 	employeeId /= 100
 
 	if yearDigits := employeeId % 10000; yearDigits < 2000 ||
 		yearDigits > uint64(currYear) {
-		return false
+		return constant.ErrBadInput
 	}
 	employeeId /= 10000
 
 	if genderDigit := employeeId % 10; genderDigit < 1 ||
 		genderDigit > 2 {
-		return false
+		return constant.ErrBadInput
 	}
 	employeeId /= 10
 
-	return employeeId == 303
+	if employeeId != 303 {
+		return constant.ErrNotFound
+	}
+
+	return nil
 }
