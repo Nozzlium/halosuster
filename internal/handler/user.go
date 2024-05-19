@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -42,7 +43,7 @@ func (h *UserHandler) Register(
 		)
 	}
 
-	err = body.IsValid()
+	userModel, err := body.IsValid()
 	if err != nil {
 		return HandleError(
 			ctx,
@@ -59,11 +60,7 @@ func (h *UserHandler) Register(
 
 	data, err := h.userService.Register(
 		ctx.UserContext(),
-		model.User{
-			EmployeeID: body.NIP,
-			Name:       body.Name,
-			Password:   body.Password,
-		},
+		userModel,
 	)
 	if err != nil {
 		return HandleError(
@@ -106,7 +103,7 @@ func (h *UserHandler) Login(
 		)
 	}
 
-	err = body.IsValid()
+	userModel, err := body.IsValid()
 	if err != nil {
 		return HandleError(
 			ctx,
@@ -123,10 +120,7 @@ func (h *UserHandler) Login(
 
 	data, err := h.userService.Login(
 		ctx.UserContext(),
-		model.User{
-			EmployeeID: body.NIP,
-			Password:   body.Password,
-		},
+		userModel,
 	)
 	if err != nil {
 		return HandleError(
@@ -168,7 +162,7 @@ func (h *UserHandler) RegisterNurse(
 		)
 	}
 
-	err = body.IsValid()
+	userModel, err := body.IsValid()
 	if err != nil {
 		return HandleError(
 			ctx,
@@ -189,11 +183,7 @@ func (h *UserHandler) RegisterNurse(
 	)
 	data, err := h.userService.RegisterNurse(
 		ctx.Context(),
-		model.User{
-			EmployeeID:           body.NIP,
-			Name:                 body.Name,
-			IdentityCardImageURL: body.IdentityCardScanImg,
-		},
+		userModel,
 	)
 	if err != nil {
 		return HandleError(
@@ -236,7 +226,7 @@ func (h *UserHandler) LoginNurse(
 		)
 	}
 
-	err = body.IsValid()
+	userModel, err := body.IsValid()
 	if err != nil {
 		return HandleError(
 			ctx,
@@ -253,10 +243,7 @@ func (h *UserHandler) LoginNurse(
 
 	data, err := h.userService.LoginNurse(
 		ctx.UserContext(),
-		model.User{
-			EmployeeID: body.NIP,
-			Password:   body.Password,
-		},
+		userModel,
 	)
 	if err != nil {
 		return HandleError(
@@ -332,10 +319,6 @@ func (h *UserHandler) GrantNurseAccess(
 		)
 	}
 
-	fmt.Println(
-		"ini lhooo masbroooo",
-		ctx.Locals("employeeId"),
-	)
 	err = h.userService.GrantNurseAccess(
 		ctx.Context(),
 		model.User{
@@ -357,10 +340,9 @@ func (h *UserHandler) GrantNurseAccess(
 		)
 	}
 
-	return ctx.Status(fiber.StatusCreated).
-		JSON(fiber.Map{
-			"message": "success",
-		})
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
 }
 
 func (h *UserHandler) FindAll(
@@ -399,4 +381,127 @@ func (h *UserHandler) FindAll(
 		"message": "success",
 		"data":    data,
 	})
+}
+
+func (h *UserHandler) Update(
+	ctx *fiber.Ctx,
+) error {
+	userIdString := ctx.Params("userId")
+	var body model.NurseEditRequestBody
+	err := ctx.BodyParser(&body)
+	if err != nil {
+		err = constant.ErrBadInput
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: "invalid body",
+				detail: fmt.Sprintf(
+					"nurse edit; failed to parse request body %v",
+					err,
+				),
+			},
+		)
+	}
+
+	user, err := body.IsValid()
+	if err != nil {
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: "invalid body",
+				detail: fmt.Sprintf(
+					"nurse edit; invalid body: %v",
+					err,
+				),
+			},
+		)
+	}
+
+	userId, err := uuid.ParseBytes(
+		[]byte(userIdString),
+	)
+	if err != nil {
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: "error parsing user ID",
+				detail: fmt.Sprintf(
+					"nurse access; failed to parse userID  %v",
+					err,
+				),
+			},
+		)
+	}
+	user.ID = userId
+
+	_, err = h.userService.UpdateNurse(
+		ctx.Context(),
+		user,
+	)
+	if err != nil {
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: "failed to edit",
+				detail: fmt.Sprintf(
+					"nurse edit; failed to edit %v",
+					err,
+				),
+			},
+		)
+	}
+
+	log.Println("success edit")
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}
+
+func (h *UserHandler) Delete(
+	ctx *fiber.Ctx,
+) error {
+	userIdString := ctx.Params("userId")
+
+	userId, err := uuid.ParseBytes(
+		[]byte(userIdString),
+	)
+	if err != nil {
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: "error parsing user ID",
+				detail: fmt.Sprintf(
+					"nurse delete; failed to parse userID  %v",
+					err,
+				),
+			},
+		)
+	}
+
+	_, err = h.userService.DeleteNurse(
+		ctx.Context(),
+		userId,
+	)
+	if err != nil {
+		return HandleError(
+			ctx,
+			ErrorResponse{
+				error:   err,
+				message: "failed to edit",
+				detail: fmt.Sprintf(
+					"nurse delete; failed to edit %v",
+					err,
+				),
+			},
+		)
+	}
+
+	return ctx.JSON(
+		fiber.Map{"message": "success"},
+	)
 }

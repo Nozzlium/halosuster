@@ -79,7 +79,8 @@ func (r *UserRepository) FindById(
       password
     from users
     where
-      id = $1;
+      id = $1 and
+      deleted_at is null;
   `
 
 	var user model.User
@@ -120,6 +121,7 @@ func (r *UserRepository) FindAll(
 		searchQuery.BuildWhereClauses,
 		searchQuery.BuildPagination,
 		searchQuery.BuildOrderByClause,
+		true,
 	)
 	log.Println(
 		"query hasil",
@@ -161,7 +163,7 @@ func (r *UserRepository) FindAll(
 
 func (r *UserRepository) FindByEmployeeId(
 	ctx context.Context,
-	employeeId uint64,
+	employeeId string,
 ) (model.User, error) {
 	query := `
     select
@@ -171,7 +173,8 @@ func (r *UserRepository) FindByEmployeeId(
       password
     from users
     where
-      employee_id = $1;
+      employee_id = $1 and
+      deleted_at is null;
   `
 
 	var user model.User

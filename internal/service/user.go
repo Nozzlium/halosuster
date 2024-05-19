@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -92,7 +91,10 @@ func (s *UserService) Register(
 		return model.UserRegisterResponseBody{}, err
 	}
 
-	userResponseBody := result.ToUserRegisterResponseBody()
+	userResponseBody, err := result.ToUserRegisterResponseBody()
+	if err != nil {
+		return model.UserRegisterResponseBody{}, err
+	}
 	userResponseBody.AccessToken = accessToken
 
 	return userResponseBody, nil
@@ -126,7 +128,10 @@ func (s *UserService) Login(
 		return model.UserRegisterResponseBody{}, err
 	}
 
-	userResponseBody := savedUser.ToUserRegisterResponseBody()
+	userResponseBody, err := savedUser.ToUserRegisterResponseBody()
+	if err != nil {
+		return model.UserRegisterResponseBody{}, err
+	}
 	userResponseBody.AccessToken = accessToken
 
 	return userResponseBody, nil
@@ -144,19 +149,24 @@ func (s *UserService) FindAll(
 		return nil, err
 	}
 
-	usersData := make(
+	usersDataCol := make(
 		[]model.UserDataResponseBody,
 		0,
 		len(users),
 	)
 	for _, user := range users {
-		usersData = append(
-			usersData,
-			user.ToUserDataResponseBody(),
+		userData, err := user.ToUserDataResponseBody()
+		if err != nil {
+			return nil, err
+		}
+
+		usersDataCol = append(
+			usersDataCol,
+			userData,
 		)
 	}
 
-	return usersData, nil
+	return usersDataCol, nil
 }
 
 func generateJwtToken(
@@ -171,10 +181,7 @@ func generateJwtToken(
 	userID := base64.RawStdEncoding.EncodeToString(
 		[]byte(user.ID.String()),
 	)
-	employeeId := strconv.FormatUint(
-		user.EmployeeID,
-		16,
-	)
+	employeeId := user.EmployeeID
 	log.Println(employeeId)
 	claims["si"] = userID
 	claims["ut"] = employeeId
@@ -196,7 +203,7 @@ func (s *UserService) RegisterNurse(
 	ctx context.Context,
 	user model.User,
 ) (model.NurseRegisterResponseBody, error) {
-	employeeId := ctx.Value("employeeId").(uint64)
+	employeeId := ctx.Value("employeeId").(string)
 	err := util.ValidateUserEmployeeID(
 		employeeId,
 	)
@@ -239,7 +246,7 @@ func (s *UserService) RegisterNurse(
 		return model.NurseRegisterResponseBody{}, err
 	}
 
-	return result.ToNurseResponseBody(), nil
+	return result.ToNurseResponseBody()
 }
 
 func (s *UserService) LoginNurse(
@@ -270,7 +277,10 @@ func (s *UserService) LoginNurse(
 		return model.UserRegisterResponseBody{}, err
 	}
 
-	userResponseBody := savedUser.ToUserRegisterResponseBody()
+	userResponseBody, err := savedUser.ToUserRegisterResponseBody()
+	if err != nil {
+		return model.UserRegisterResponseBody{}, err
+	}
 	userResponseBody.AccessToken = accessToken
 
 	return userResponseBody, nil
@@ -280,7 +290,7 @@ func (s *UserService) GrantNurseAccess(
 	ctx context.Context,
 	user model.User,
 ) error {
-	employeeId := ctx.Value("employeeId").(uint64)
+	employeeId := ctx.Value("employeeId").(string)
 	err := util.ValidateUserEmployeeID(
 		employeeId,
 	)
@@ -296,7 +306,7 @@ func (s *UserService) GrantNurseAccess(
 		return err
 	}
 
-	err = util.ValidateNurseEmployeeID(
+	err = util.ValidateGeneralEmployeeID(
 		savedNurse.EmployeeID,
 	)
 	if err != nil {
@@ -327,11 +337,34 @@ func (s *UserService) GrantNurseAccess(
 	return nil
 }
 
-func (s *UserService) Update(
+func (s *UserService) UpdateNurse(
 	ctx context.Context,
 	user model.User,
 ) (model.User, error) {
-	saved, err := s.userRepository.FindByEmployeeId(
+	employeeId := ctx.Value("employeeId").(string)
+	err := util.ValidateUserEmployeeID(
+		employeeId,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	existingUser, err := s.userRepository.FindById(
+		ctx,
+		user.ID,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	err = util.ValidateIsANurse(
+		existingUser.EmployeeID,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	_, err = s.userRepository.FindByEmployeeId(
 		ctx,
 		user.EmployeeID,
 	)
@@ -340,21 +373,63 @@ func (s *UserService) Update(
 			err,
 			constant.ErrNotFound,
 		) {
-			return user, err
+			return model.User{}, err
 		}
+	} else {
+		return model.User{}, constant.ErrConflict
 	}
 
-	if saved.EmployeeID == user.EmployeeID {
-		return user, constant.ErrConflict
-	}
+	existingUser.EmployeeID = user.EmployeeID
+	existingUser.Name = user.Name
 
-	edited, err := s.userRepository.Edit(
+	saved, err := s.userRepository.Edit(
 		ctx,
-		user,
+		existingUser,
 	)
 	if err != nil {
 		return model.User{}, err
 	}
 
-	return edited, nil
+	return saved, nil
+}
+
+func (s *UserService) DeleteNurse(
+	ctx context.Context,
+	id uuid.UUID,
+) (model.User, error) {
+	employeeId := ctx.Value("employeeId").(string)
+	err := util.ValidateUserEmployeeID(
+		employeeId,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	existingUser, err := s.userRepository.FindById(
+		ctx,
+		id,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	err = util.ValidateIsANurse(
+		existingUser.EmployeeID,
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	_, err = s.userRepository.SetDeletedAt(
+		ctx,
+		model.User{
+			ID:        id,
+			DeletedAt: time.Now(),
+		},
+	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return model.User{}, nil
 }

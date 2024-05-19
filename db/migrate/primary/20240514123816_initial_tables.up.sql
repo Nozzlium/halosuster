@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS "users" (
   "id" uuid NOT NULL,
-  "employee_id" bigint not null,
+  "employee_id" varchar(15) not null,
   "name" varchar(50),
   -- "username" varchar(255) NOT NULL,
   "password" varchar(100),
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS "users" (
   "created_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamp NULL DEFAULT NULL,
-  PRIMARY KEY ("id"),
-  UNIQUE ("employee_id")
+  PRIMARY KEY ("id")
 );
+
+CREATE INDEX IF NOT EXISTS idx_user_employee_id ON users(employee_id);

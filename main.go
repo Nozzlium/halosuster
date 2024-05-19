@@ -86,6 +86,14 @@ func setupApp(app *fiber.App) error {
 		"/register",
 		userHandler.RegisterNurse,
 	)
+	userNurseProtected.Put(
+		"/:userId",
+		userHandler.Update,
+	)
+	userNurseProtected.Delete(
+		"/:userId",
+		userHandler.Delete,
+	)
 	userNurseProtected.Post(
 		"/:userId/access",
 		userHandler.GrantNurseAccess,

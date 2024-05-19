@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func (o OrderBy) IsValid() bool {
 
 type User struct {
 	ID                   uuid.UUID
-	EmployeeID           uint64
+	EmployeeID           string
 	Name                 string
 	Password             string
 	IdentityCardImageURL string
@@ -39,31 +40,57 @@ type User struct {
 	DeletedAt            time.Time
 }
 
-func (u *User) ToUserDataResponseBody() UserDataResponseBody {
+func (u *User) ToUserDataResponseBody() (UserDataResponseBody, error) {
+	employeeIDInt, err := strconv.ParseUint(
+		u.EmployeeID,
+		10,
+		64,
+	)
+	if err != nil {
+		return UserDataResponseBody{}, err
+	}
 	return UserDataResponseBody{
 		UserID: u.ID.String(),
-		NIP:    u.EmployeeID,
+		NIP:    employeeIDInt,
 		Name:   u.Name,
 		CreatedAt: util.ToISO8601(
 			u.CreatedAt,
 		),
-	}
+	}, nil
 }
 
-func (u *User) ToUserRegisterResponseBody() UserRegisterResponseBody {
+func (u *User) ToUserRegisterResponseBody() (UserRegisterResponseBody, error) {
+	employeeIDInt, err := strconv.ParseUint(
+		u.EmployeeID,
+		10,
+		64,
+	)
+	if err != nil {
+		return UserRegisterResponseBody{}, err
+	}
+
 	return UserRegisterResponseBody{
 		UserID: u.ID.String(),
-		NIP:    u.EmployeeID,
+		NIP:    employeeIDInt,
 		Name:   u.Name,
-	}
+	}, nil
 }
 
-func (u *User) ToNurseResponseBody() NurseRegisterResponseBody {
+func (u *User) ToNurseResponseBody() (NurseRegisterResponseBody, error) {
+	employeeIDInt, err := strconv.ParseUint(
+		u.EmployeeID,
+		10,
+		64,
+	)
+	if err != nil {
+		return NurseRegisterResponseBody{}, err
+	}
+
 	return NurseRegisterResponseBody{
 		UserID: u.ID.String(),
-		NIP:    u.EmployeeID,
+		NIP:    employeeIDInt,
 		Name:   u.Name,
-	}
+	}, nil
 }
 
 type UserRegisterRequestBody struct {
@@ -72,25 +99,33 @@ type UserRegisterRequestBody struct {
 	Password string `json:"password"`
 }
 
-func (body *UserRegisterRequestBody) IsValid() error {
-	err := util.ValidateUserEmployeeID(
+func (body *UserRegisterRequestBody) IsValid() (User, error) {
+	var user User
+	employeeIdString := strconv.FormatUint(
 		body.NIP,
+		10,
+	)
+	err := util.ValidateUserEmployeeID(
+		employeeIdString,
 	)
 	if err != nil {
-		return err
+		return user, err
 	}
+	user.EmployeeID = employeeIdString
 
 	if nameLen := len(body.Name); nameLen < 5 ||
 		nameLen > 50 {
-		return constant.ErrBadInput
+		return user, constant.ErrBadInput
 	}
+	user.Name = body.Name
 
 	if passwordLen := len(body.Password); passwordLen < 5 ||
 		passwordLen > 33 {
-		return constant.ErrBadInput
+		return user, constant.ErrBadInput
 	}
+	user.Password = body.Password
 
-	return nil
+	return user, nil
 }
 
 type UserRegisterResponseBody struct {
@@ -105,20 +140,27 @@ type UserLoginBody struct {
 	Password string `json:"password"`
 }
 
-func (body *UserLoginBody) IsValid() error {
-	err := util.ValidateUserEmployeeID(
+func (body *UserLoginBody) IsValid() (User, error) {
+	var user User
+	employeeIdString := strconv.FormatUint(
 		body.NIP,
+		10,
+	)
+	err := util.ValidateUserEmployeeID(
+		employeeIdString,
 	)
 	if err != nil {
-		return err
+		return user, err
 	}
+	user.EmployeeID = employeeIdString
 
 	if passLen := len(body.Password); passLen < 5 ||
 		passLen > 33 {
-		return constant.ErrBadInput
+		return user, constant.ErrBadInput
 	}
+	user.Password = body.Password
 
-	return nil
+	return user, nil
 }
 
 type NurseLoginBody struct {
@@ -126,20 +168,27 @@ type NurseLoginBody struct {
 	Password string `json:"password"`
 }
 
-func (body *NurseLoginBody) IsValid() error {
-	err := util.ValidateNurseEmployeeID(
+func (body *NurseLoginBody) IsValid() (User, error) {
+	var user User
+	employeeIdString := strconv.FormatUint(
 		body.NIP,
+		10,
+	)
+	err := util.ValidateGeneralEmployeeID(
+		employeeIdString,
 	)
 	if err != nil {
-		return err
+		return user, err
 	}
+	user.EmployeeID = employeeIdString
 
 	if passLen := len(body.Password); passLen < 5 ||
 		passLen > 33 {
-		return constant.ErrBadInput
+		return user, constant.ErrBadInput
 	}
+	user.Password = body.Password
 
-	return nil
+	return user, nil
 }
 
 type NurseRegisterRequestBody struct {
@@ -148,26 +197,34 @@ type NurseRegisterRequestBody struct {
 	IdentityCardScanImg string `json:"identityCardScanImg"`
 }
 
-func (body *NurseRegisterRequestBody) IsValid() error {
-	err := util.ValidateNurseEmployeeID(
+func (body *NurseRegisterRequestBody) IsValid() (User, error) {
+	var user User
+	employeeIdString := strconv.FormatUint(
 		body.NIP,
+		10,
+	)
+	err := util.ValidateGeneralEmployeeID(
+		employeeIdString,
 	)
 	if err != nil {
-		return err
+		return user, err
 	}
+	user.EmployeeID = employeeIdString
 
 	if nameLen := len(body.Name); nameLen < 5 ||
 		nameLen > 50 {
-		return constant.ErrBadInput
+		return user, constant.ErrBadInput
 	}
+	user.Name = body.Name
 
 	if !util.ValidateURL(
 		body.IdentityCardScanImg,
 	) {
-		return constant.ErrBadInput
+		return user, constant.ErrBadInput
 	}
+	user.IdentityCardImageURL = body.IdentityCardScanImg
 
-	return nil
+	return user, nil
 }
 
 type NurseGiveAccessRequestBody struct {
@@ -181,6 +238,34 @@ func (body *NurseGiveAccessRequestBody) IsValid() bool {
 	}
 
 	return true
+}
+
+type NurseEditRequestBody struct {
+	NIP  uint64 `json:"nip"`
+	Name string `json:"name"`
+}
+
+func (body *NurseEditRequestBody) IsValid() (User, error) {
+	var user User
+	employeeIdString := strconv.FormatUint(
+		body.NIP,
+		10,
+	)
+	err := util.ValidateGeneralEmployeeID(
+		employeeIdString,
+	)
+	if err != nil {
+		return user, err
+	}
+	user.EmployeeID = employeeIdString
+
+	if nameLen := len(body.Name); nameLen < 5 ||
+		nameLen > 50 {
+		return user, constant.ErrBadInput
+	}
+	user.Name = body.Name
+
+	return user, nil
 }
 
 type NurseRegisterResponseBody struct {
@@ -217,24 +302,24 @@ func (q *SearchUserQuery) BuildWhereClauses() ([]string, []interface{}) {
 	if q.Name != "" {
 		clauses = append(
 			clauses,
-			"name ilike %%$%d%%",
+			`name ilike '%%' || $%d || '%%'`,
 		)
 		params = append(params, q.Name)
 	}
 
-	if q.NIP > 0 {
+	employeeIdString := strconv.FormatUint(
+		q.NIP,
+		10,
+	)
+	if employeeIdString != "0" &&
+		employeeIdString != "" {
 		clauses = append(
 			clauses,
-			"employee_id >= $%d",
-			"employee_id <= $%d",
-		)
-		lower, upper := formEmployeeIdWildcard(
-			q.NIP,
+			`employee_id like $%d || '%%'`,
 		)
 		params = append(
 			params,
-			lower,
-			upper,
+			employeeIdString,
 		)
 	}
 
@@ -242,31 +327,22 @@ func (q *SearchUserQuery) BuildWhereClauses() ([]string, []interface{}) {
 	case "it":
 		clauses = append(
 			clauses,
-			"employee_id >= $%d",
-			"employee_id <= $%d",
+			`employee_id like $%d || '%%'`,
 		)
-		lower, upper := formEmployeeIdWildcard(
-			615,
-		)
+
 		params = append(
 			params,
-			lower,
-			upper,
+			"615",
 		)
 
 	case "nurse":
 		clauses = append(
 			clauses,
-			"employee_id >= $%d",
-			"employee_id <= $%d",
-		)
-		lower, upper := formEmployeeIdWildcard(
-			303,
+			"employee_id like $%d || '%%'",
 		)
 		params = append(
 			params,
-			lower,
-			upper,
+			"303",
 		)
 	}
 
@@ -315,24 +391,6 @@ func (q SearchUserQuery) BuildOrderByClause() []string {
 	}
 
 	return sqlClause
-}
-
-func formEmployeeIdWildcard(
-	employeeId uint64,
-) (uint64, uint64) {
-	var minIT uint64 = 6150000000000
-	var minNurse uint64 = 3030000000000
-
-	upper := 0
-	for employeeId < minIT || employeeId < minNurse {
-		employeeId *= 10
-		upper = (upper * 10) + 9
-		if employeeId >= minNurse {
-			return employeeId, (employeeId + uint64(upper))
-		}
-	}
-
-	return employeeId, (employeeId + uint64(upper))
 }
 
 type UserDataResponseBody struct {

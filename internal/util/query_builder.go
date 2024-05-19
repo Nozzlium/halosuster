@@ -10,6 +10,7 @@ func BuildQueryStringAndParams(
 	whereBuilder func() ([]string, []interface{}),
 	paginationBuilder func() (string, []interface{}),
 	orderByBuilder func() []string,
+	noDeleted bool,
 ) (string, []interface{}) {
 	where, params := whereBuilder()
 	for i, clause := range where {
@@ -17,6 +18,13 @@ func BuildQueryStringAndParams(
 			baseQuery,
 			" and %s",
 			fmt.Sprintf(clause, i+1),
+		)
+	}
+	if noDeleted {
+		fmt.Fprintf(
+			baseQuery,
+			" and %s",
+			"deleted_at is null",
 		)
 	}
 

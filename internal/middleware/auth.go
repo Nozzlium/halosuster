@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"os"
-	"strconv"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -26,12 +25,8 @@ func Protected() func(*fiber.Ctx) error {
 func SetClaimsData() func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		user := c.Locals("userData").(*jwt.Token).Claims.(jwt.MapClaims)
-		employeeId, err := strconv.ParseUint(
-			user["ut"].(string),
-			16,
-			64,
-		)
-		if err != nil {
+		employeeId, ok := user["ut"].(string)
+		if !ok {
 			return c.Status(fiber.StatusUnauthorized).
 				JSON(fiber.Map{"message": "invalid token"})
 		}

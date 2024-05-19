@@ -6,7 +6,10 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-ENV GOOS=linux
-ENV GOARCH=amd64
+COPY . ./
 
-CMD ["go", "build", "-o", "murkoto/eniqilo", "."]
+RUN GOOS=linux GOARCH=amd64 go build -o halosuster .
+
+expose 8080
+
+CMD ["./halosuster"]

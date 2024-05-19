@@ -2,7 +2,6 @@ package util
 
 import (
 	"regexp"
-	"time"
 
 	"github.com/nozzlium/halosuster/internal/constant"
 )
@@ -20,74 +19,74 @@ func ValidateURL(url string) bool {
 }
 
 func ValidateUserEmployeeID(
-	employeeId uint64,
+	employeeId string,
 ) error {
-	if employeeId < uint64(
-		6150000000000,
+	regex := "^[615]{3}[1-2]{1}(200[0-9]|201[0-9]|202[1-4])(0[1-9]|1[0-2])[0-9]{3,5}$"
+	idStringRegex, err := regexp.Compile(
+		regex,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !idStringRegex.MatchString(
+		employeeId,
 	) {
 		return constant.ErrBadInput
 	}
 
-	employeeId /= 1000
-	currYear := time.Now().Year()
-
-	if monthDigits := employeeId % 100; monthDigits < 1 ||
-		monthDigits > 12 {
-		return constant.ErrBadInput
+	regex = "^[615]{3}[0-9]{10,12}$"
+	roleStringRegex, err := regexp.Compile(
+		regex,
+	)
+	if err != nil {
+		return err
 	}
-	employeeId /= 100
 
-	if yearDigits := employeeId % 10000; yearDigits < 2000 ||
-		yearDigits > uint64(currYear) {
-		return constant.ErrBadInput
-	}
-	employeeId /= 10000
-
-	if genderDigit := employeeId % 10; genderDigit < 1 ||
-		genderDigit > 2 {
-		return constant.ErrBadInput
-	}
-	employeeId /= 10
-
-	if employeeId != 615 {
+	if !roleStringRegex.MatchString(
+		employeeId,
+	) {
 		return constant.ErrNotFound
 	}
 
 	return nil
 }
 
-func ValidateNurseEmployeeID(
-	employeeId uint64,
+func ValidateIsANurse(
+	employeeId string,
 ) error {
-	if employeeId < uint64(
-		3030000000000,
+	regex := "^[303]{3}[0-9]{10,12}$"
+	roleStringRegex, err := regexp.Compile(
+		regex,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !roleStringRegex.MatchString(
+		employeeId,
+	) {
+		return constant.ErrNotFound
+	}
+
+	return nil
+}
+
+func ValidateGeneralEmployeeID(
+	employeeId string,
+) error {
+	regex := "^[0-9]{3}[1-2]{1}(200[0-9]|201[0-9]|202[1-4])(0[1-9]|1[0-2])[0-9]{3,5}$"
+	idStringRegex, err := regexp.Compile(
+		regex,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !idStringRegex.MatchString(
+		employeeId,
 	) {
 		return constant.ErrBadInput
-	}
-
-	employeeId /= 1000
-	currYear := time.Now().Year()
-
-	if monthDigits := employeeId % 100; monthDigits < 1 ||
-		monthDigits > 12 {
-		return constant.ErrBadInput
-	}
-	employeeId /= 100
-
-	if yearDigits := employeeId % 10000; yearDigits < 2000 ||
-		yearDigits > uint64(currYear) {
-		return constant.ErrBadInput
-	}
-	employeeId /= 10000
-
-	if genderDigit := employeeId % 10; genderDigit < 1 ||
-		genderDigit > 2 {
-		return constant.ErrBadInput
-	}
-	employeeId /= 10
-
-	if employeeId != 303 {
-		return constant.ErrNotFound
 	}
 
 	return nil
