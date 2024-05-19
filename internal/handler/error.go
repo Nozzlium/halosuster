@@ -11,7 +11,6 @@ func HandleError(
 	ctx *fiber.Ctx,
 	err ErrorResponse,
 ) error {
-	log.Printf("error: %v", err.detail)
 	switch err.error {
 	case constant.ErrNotFound:
 		return ctx.Status(fiber.StatusNotFound).

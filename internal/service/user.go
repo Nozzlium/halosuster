@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -182,7 +181,6 @@ func generateJwtToken(
 		[]byte(user.ID.String()),
 	)
 	employeeId := user.EmployeeID
-	log.Println(employeeId)
 	claims["si"] = userID
 	claims["ut"] = employeeId
 	claims["exp"] = time.Now().

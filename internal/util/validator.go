@@ -52,6 +52,46 @@ func ValidateUserEmployeeID(
 	return nil
 }
 
+func ValidateIdentityNumber(
+	identityNumber string,
+) error {
+	regex := "^[0-9]{16}$"
+	identityNumberRegex, err := regexp.Compile(
+		regex,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !identityNumberRegex.MatchString(
+		identityNumber,
+	) {
+		return constant.ErrBadInput
+	}
+
+	return nil
+}
+
+func ValidatePhoneNumber(
+	phoneNumber string,
+) error {
+	regex := "^[+]{1}[62]{2}[0-9]{7,12}$"
+	phoneNumberRegex, err := regexp.Compile(
+		regex,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !phoneNumberRegex.MatchString(
+		phoneNumber,
+	) {
+		return constant.ErrBadInput
+	}
+
+	return nil
+}
+
 func ValidateIsANurse(
 	employeeId string,
 ) error {

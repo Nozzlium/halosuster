@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"log"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -122,11 +121,6 @@ func (r *UserRepository) FindAll(
 		searchQuery.BuildPagination,
 		searchQuery.BuildOrderByClause,
 		true,
-	)
-	log.Println(
-		"query hasil",
-		queryString,
-		params,
 	)
 
 	rows, err := r.db.Query(

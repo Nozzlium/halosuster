@@ -51,15 +51,24 @@ func setupApp(app *fiber.App) error {
 	userRepo := repository.NewUserRepository(
 		db,
 	)
+	patientRepo := repository.NewPatientRepository(
+		db,
+	)
 
 	userService := service.NewUserService(
 		userRepo,
 		int(cfg.BCryptSalt),
 		cfg.JWTSecret,
 	)
+	patientService := service.NewPatientService(
+		patientRepo,
+	)
 
 	userHandler := handler.NewUserHandler(
 		userService,
+	)
+	patientHandler := handler.NewPatientHandler(
+		patientService,
 	)
 
 	v1 := app.Group("/v1")
@@ -102,6 +111,20 @@ func setupApp(app *fiber.App) error {
 	user := v1.Group("/user")
 	user.Use(middleware.Protected())
 	user.Get("", userHandler.FindAll)
+
+	patient := v1.Group(
+		"/medical/patient",
+	)
+	patient.Use(middleware.Protected()).
+		Use(middleware.SetClaimsData())
+	patient.Post(
+		"",
+		patientHandler.Create,
+	)
+	patient.Get(
+		"",
+		patientHandler.FindAll,
+	)
 
 	return nil
 }

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -177,10 +176,6 @@ func (h *UserHandler) RegisterNurse(
 		)
 	}
 
-	fmt.Println(
-		"ini lhooo masbroooo",
-		ctx.Locals("employeeId"),
-	)
 	data, err := h.userService.RegisterNurse(
 		ctx.Context(),
 		userModel,
@@ -455,7 +450,6 @@ func (h *UserHandler) Update(
 		)
 	}
 
-	log.Println("success edit")
 	return ctx.JSON(fiber.Map{
 		"message": "success",
 	})
