@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,6 +12,7 @@ func HandleError(
 	ctx *fiber.Ctx,
 	err ErrorResponse,
 ) error {
+	log.Printf("error: %v", err.detail)
 	switch err.error {
 	case constant.ErrNotFound:
 		return ctx.Status(fiber.StatusNotFound).
@@ -43,7 +45,7 @@ func HandleError(
 		)
 		return ctx.Status(fiber.StatusInternalServerError).
 			JSON(fiber.Map{
-				"message": "internal server error",
+				"message": fmt.Sprint("internal server error", err.Error()),
 			})
 	}
 }

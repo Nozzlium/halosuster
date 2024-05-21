@@ -8,8 +8,8 @@ RUN go mod download
 
 COPY . ./
 
-RUN GOOS=linux GOARCH=amd64 go build -o halosuster .
+RUN GOOS=linux GOARCH=amd64 go build -o /halosuster 
 
 expose 8080
 
-CMD ["./halosuster"]
+CMD ["/halosuster"]

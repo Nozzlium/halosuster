@@ -121,7 +121,7 @@ func (s *UserService) Login(
 
 	accessToken, err := generateJwtToken(
 		s.secret,
-		user,
+		savedUser,
 	)
 	if err != nil {
 		return model.UserRegisterResponseBody{}, err
@@ -269,7 +269,7 @@ func (s *UserService) LoginNurse(
 
 	accessToken, err := generateJwtToken(
 		s.secret,
-		user,
+		savedUser,
 	)
 	if err != nil {
 		return model.UserRegisterResponseBody{}, err

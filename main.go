@@ -18,7 +18,7 @@ func main() {
 	fiberApp := fiber.New(fiber.Config{
 		JSONEncoder: sonic.Marshal,
 		JSONDecoder: sonic.Unmarshal,
-		Prefork:     true,
+		Prefork:     false,
 	})
 
 	err := setupApp(fiberApp)
@@ -54,6 +54,9 @@ func setupApp(app *fiber.App) error {
 	patientRepo := repository.NewPatientRepository(
 		db,
 	)
+	recordRepo := repository.NewRecordRepository(
+		db,
+	)
 
 	userService := service.NewUserService(
 		userRepo,
@@ -63,12 +66,18 @@ func setupApp(app *fiber.App) error {
 	patientService := service.NewPatientService(
 		patientRepo,
 	)
+	recordService := service.NewRecordService(
+		recordRepo,
+	)
 
 	userHandler := handler.NewUserHandler(
 		userService,
 	)
 	patientHandler := handler.NewPatientHandler(
 		patientService,
+	)
+	recordHandler := handler.NewRecordHandler(
+		recordService,
 	)
 
 	v1 := app.Group("/v1")
@@ -124,6 +133,16 @@ func setupApp(app *fiber.App) error {
 	patient.Get(
 		"",
 		patientHandler.FindAll,
+	)
+
+	record := v1.Group(
+		"/medical/record",
+	)
+	record.Use(middleware.Protected()).
+		Use(middleware.SetClaimsData())
+	record.Post(
+		"",
+		recordHandler.Create,
 	)
 
 	return nil

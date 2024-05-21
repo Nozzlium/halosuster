@@ -21,7 +21,7 @@ func ValidateURL(url string) bool {
 func ValidateUserEmployeeID(
 	employeeId string,
 ) error {
-	regex := "^[615]{3}[1-2]{1}(200[0-9]|201[0-9]|202[1-4])(0[1-9]|1[0-2])[0-9]{3,5}$"
+	regex := "^[615]{3}[1-2]{1}(200[0-9]|201[0-9]|202[0-4])(0[1-9]|1[0-2])[0-9]{3,5}$"
 	idStringRegex, err := regexp.Compile(
 		regex,
 	)
@@ -115,7 +115,7 @@ func ValidateIsANurse(
 func ValidateGeneralEmployeeID(
 	employeeId string,
 ) error {
-	regex := "^[0-9]{3}[1-2]{1}(200[0-9]|201[0-9]|202[1-4])(0[1-9]|1[0-2])[0-9]{3,5}$"
+	regex := "^[0-9]{3}[1-2]{1}(200[0-9]|201[0-9]|202[0-4])(0[1-9]|1[0-2])[0-9]{3,5}$"
 	idStringRegex, err := regexp.Compile(
 		regex,
 	)
